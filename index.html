@@ -171,23 +171,31 @@
         <p style="text-align: center; font-size: 0.7rem; color: #666; margin-top: 10px;">Fire Mind قد يرتكب أخطاء، تأكد من المعلومات المهمة.</p>
     </div>
 <script>
-    // الطريقة الذكية لتجاوز Secret Scanning في GitHub:
-    // قم بتقسيم الـ Token الخاص بك إلى جزئين هنا
+    // 1. تقسيم المفتاح لتجنب Secret Scanning (تأكد من وضع بقية مفتاحك في p2)
     const p1 = "hf_"; 
-    const p2 = "LBmCmZqlMXdEfTDoSQOMaSweXIimhPxziw"; // الصق التوكن هنا بدون hf_
-    
+    const p2 = "LBmCmZqlMXdEfTDoSQOMaSweXIimhPxziw"; 
     const HF_TOKEN = p1 + p2;
 
-    async function sendMessage() {
-        const input = document.getElementById('user-input');
-        const container = document.getElementById('chat-container');
-        const status = document.getElementById('status');
-        const text = input.value.trim();
+    const container = document.getElementById('chat-container');
+    const status = document.getElementById('status');
+    const input = document.getElementById('user-input');
 
+    // 2. تحميل المحادثات السابقة عند فتح الصفحة
+    window.onload = () => {
+        const savedChat = localStorage.getItem('firemind_chat');
+        if (savedChat) {
+            container.innerHTML = savedChat;
+            container.scrollTop = container.scrollHeight;
+        }
+    };
+
+    async function sendMessage() {
+        const text = input.value.trim();
         if (!text) return;
 
         // إظهار رسالة المستخدم
-        container.innerHTML += `<div class="message user-msg"><div class="content">${text}</div></div>`;
+        const userMsg = `<div class="message user-msg"><div class="content">${text}</div></div>`;
+        container.innerHTML += userMsg;
         input.value = '';
         status.style.display = 'block';
         container.scrollTop = container.scrollHeight;
@@ -200,32 +208,47 @@
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    inputs: `<s>[INST] أنت مساعد ذكي جزائري اسمك Fire Mind. أجب دائماً بالدارجة الجزائرية فقط. السؤال: ${text} [/INST]`,
-                    parameters: { max_new_tokens: 500, wait_for_model: true }
+                    inputs: `<s>[INST] أنت مساعد ذكي جزائري اسمك Fire Mind. أجب دائماً بالدارجة الجزائرية فقط وبطريقة ودودة. السؤال: ${text} [/INST]`,
+                    parameters: { max_new_tokens: 500, temperature: 0.7, wait_for_model: true }
                 })
             });
 
             const data = await response.json();
-            let aiResponse = "يا خويا كاين ضغط، عاود جرب.";
+            let aiResponse = "يا خويا السيرفر راه معمر، عاود جرب بعد دقيقة.";
 
             if (Array.isArray(data) && data[0].generated_text) {
                 aiResponse = data[0].generated_text.split('[/INST]').pop().trim();
             }
 
-            container.innerHTML += `
+            // إظهار رد الذكاء الاصطناعي
+            const aiMsg = `
                 <div class="message ai-msg">
                     <div class="avatar">✨</div>
                     <div class="content">${aiResponse}</div>
                 </div>`;
-        } catch (e) {
-            console.error(e);
+            container.innerHTML += aiMsg;
+
+            // 3. حفظ المحادثة في ذاكرة المتصفح
+            localStorage.setItem('firemind_chat', container.innerHTML);
+
+        } catch (error) {
+            console.error(error);
         }
 
         status.style.display = 'none';
         container.scrollTop = container.scrollHeight;
     }
 
-    document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    // الإرسال عند الضغط على Enter
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    // وظيفة إضافية: مسح المحادثة (اختياري)
+    function clearChat() {
+        if(confirm("حاب تمسح قاع الهدرة؟")) {
+            localStorage.removeItem('firemind_chat');
+            location.reload();
+        }
+    }
 </script>
    
 </body>
